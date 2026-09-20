@@ -1,40 +1,343 @@
-可以直接複製以下修改後的完整 Prompt 貼給 Gemini / Canvas，已經幫你補上「短句挖空填充」、「主詞／動詞顏色區分鷹架」以及「語音慢速調整」的結構化需求：
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>國中英語特教有聲學習網頁（含看圖聽音選單字）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .highlight-subject { @apply bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-bold border-b-2 border-blue-400; }
+    .highlight-verb { @apply bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded font-bold border-b-2 border-rose-400; }
+  </style>
+</head>
+<body class="bg-amber-50/40 text-slate-800 font-sans min-h-screen pb-12">
 
-```markdown
-請扮演一位資深前端工程師與國中英語特教教材專家。
-請使用 HTML + Tailwind CSS + JavaScript（寫在單一 HTML 檔案內），幫我製作一個「國中英語特教有聲單字與短句學習網頁」。
+  <!-- 頂部標題區 -->
+  <header class="bg-teal-600 text-white py-6 shadow-md mb-8">
+    <div class="max-w-4xl mx-auto px-4 text-center">
+      <h1 class="text-3xl font-extrabold tracking-wide">英語單字與短句學習網</h1>
+      <p class="text-teal-100 text-sm mt-1">聽力學習 • 視覺鷹架 • 看圖選單字</p>
+    </div>
+  </header>
 
-網頁需具備以下重點功能與介面要求：
+  <main class="max-w-4xl mx-auto px-4 space-y-8">
 
-1. 單字與句型資料輸入介面：
-   - 頁面頂部提供一個文字輸入框（<textarea>）與「載入資料」按鈕。
-   - 支援使用者輸入 JSON 格式，或直接貼上單字清單。系統自動動態解析載入。
+    <!-- 1. 資料輸入區 -->
+    <section class="bg-white rounded-2xl p-5 shadow-sm border border-teal-100">
+      <details class="group">
+        <summary class="cursor-pointer font-bold text-lg text-teal-800 flex justify-between items-center">
+          <span>⚙️ 載入 / 自訂單字資料 (JSON 格式)</span>
+          <span class="group-open:rotate-180 transition-transform">▼</span>
+        </summary>
+        <div class="mt-4 space-y-3">
+          <textarea id="jsonInput" rows="6" class="w-full p-3 border border-slate-300 rounded-xl text-sm font-mono focus:ring-2 focus:ring-teal-400 focus:outline-none" placeholder="貼上 JSON 資料..."></textarea>
+          <div class="flex gap-3">
+            <button onclick="loadCustomData()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-6 rounded-xl shadow transition">載入資料</button>
+            <button onclick="resetDefaultData()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-xl transition">重設範例資料</button>
+          </div>
+        </div>
+      </details>
+    </section>
 
-2. 結構化資料與視覺鷹架設計 (UI/UX)：
-   - 單字卡與例句展示區：
-     * 主詞與動詞顏色區分：例句中必須自動將「主詞 (Subject)」標示為淡藍色底色與藍字（如 `bg-blue-100 text-blue-800`），「動詞 (Verb)」標示為淡紅色底色與紅字（如 `bg-rose-100 text-rose-800`），協助學生辨識句型結構。
-     * 提供「提示」按鈕，點擊後展開中文翻譯與諧音記憶小技巧。
-   - 低彩度柔和色調、大字體、圓角大按鈕，減少認知負荷。
+    <!-- 2. 看圖聽音選單字 (新增特教互動區) -->
+    <section class="bg-white rounded-3xl p-6 shadow-md border-2 border-teal-200">
+      <div class="flex items-center justify-between mb-4 border-b pb-3">
+        <h2 class="text-2xl font-bold text-teal-900 flex items-center gap-2">
+          <span>🖼️ 聽聲音，看圖選單字</span>
+        </h2>
+        <span id="picQuizProgress" class="text-sm font-bold bg-teal-100 text-teal-800 px-3 py-1 rounded-full">第 1 / 3 題</span>
+      </div>
 
-3. 短句聽力挖空填充測驗 (Fill-in-the-Blank)：
-   - 根據每個單字/例句生成一題「短句聽力挖空填充」。
-   - 將例句中的目標單字挖空（以底線 `___` 表示）。
-   - 提供「播放句子語音」按鈕與選項/輸入框，學生聽完朗讀後填入正確單字。
+      <div class="flex flex-col md:flex-row items-center gap-6">
+        <!-- 左側：圖片與聽力播放按鈕 -->
+        <div class="flex flex-col items-center w-full md:w-1/2">
+          <div class="w-48 h-48 bg-teal-50 rounded-2xl border-4 border-teal-100 flex items-center justify-center overflow-hidden shadow-inner mb-4">
+            <img id="quizImage" src="" alt="單字示意圖" class="w-full h-full object-cover hidden">
+            <div id="quizImgPlaceholder" class="text-6xl">❓</div>
+          </div>
+          <button onclick="playQuizAudio()" class="w-full bg-amber-400 hover:bg-amber-500 text-amber-950 font-extrabold text-xl py-3 px-6 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition active:scale-95">
+            🔊 點我聽發音 (0.5x 慢速)
+          </button>
+        </div>
 
-4. 語音朗讀與音速調整 (Web Speech API)：
-   - 採用 `window.speechSynthesis` 朗讀。
-   - 句子完整朗讀語速設定為 0.65x（慢速特教模式），避免連讀過快。
-   - 單字與音節拆解朗讀語速設定為 0.5x，讓學生能聽清每個音節發音。
+        <!-- 右側：選單字選項 -->
+        <div class="w-full md:w-1/2 flex flex-col justify-center gap-3" id="picQuizOptions">
+          <!-- 動態生成選項按鈕 -->
+        </div>
+      </div>
 
-5. 預設資料：
-   - 預設載入包含「主詞 S、動詞 V 標註」與「挖空測驗」的 3 組範例 JSON 資料（如 weather, spring, rain）。
+      <div id="picQuizFeedback" class="mt-4 text-center font-bold text-xl h-8"></div>
+    </section>
 
-請直接提供完整可執行的 HTML 代碼。
+    <!-- 3. 單字卡與視覺鷹架展示區 -->
+    <section class="space-y-6">
+      <h2 class="text-2xl font-bold text-slate-700 flex items-center gap-2">
+        <span>📖 單字與視覺鷹架句型</span>
+      </h2>
+      <div id="cardsContainer" class="space-y-6">
+        <!-- 動態渲染單字卡 -->
+      </div>
+    </section>
 
-```
+    <!-- 4. 聽力挖空填充測驗 -->
+    <section class="bg-white rounded-3xl p-6 shadow-md border-2 border-indigo-100 space-y-6">
+      <h2 class="text-2xl font-bold text-indigo-900 flex items-center gap-2">
+        <span>✏️ 聽力短句挖空填充</span>
+      </h2>
+      <div id="fillQuizContainer" class="space-y-6">
+        <!-- 動態渲染挖空測驗 -->
+      </div>
+    </section>
 
-**新增重點說明：**
+  </main>
 
-* **短句挖空填充**：增加聽句子填空測驗模組，點擊播音後填寫目標單字。
-* **語意色塊區分**：主詞以藍色（`bg-blue-100`）、動詞以紅色（`bg-rose-100`）高亮顯示。
-* **慢速朗讀控制**：句子降至 `0.65x`、音節降至 `0.5x`，方便特教學生的聽力吸收。
+  <script>
+    // 預設特教範例資料
+    const defaultData = [
+      {
+        id: 1,
+        word: "rain",
+        syllables: "rain",
+        meaning: "下雨；雨水",
+        mnemonic: "諧音「潤」：雨水滋潤大地。",
+        imageUrl: "https://images.unsplash.com/photo-1519692933481-e162a57d6721?w=400&auto=format&fit=crop&q=80",
+        options: ["rain", "sun", "wind"],
+        sentence: "The heavy rain falls on the street.",
+        sentenceZh: "大雨落在大街上。",
+        subject: "The heavy rain",
+        verb: "falls"
+      },
+      {
+        id: 2,
+        word: "spring",
+        syllables: "spring",
+        meaning: "春天",
+        mnemonic: "諧音「死病」都不見：春天來了萬物復甦。",
+        imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&auto=format&fit=crop&q=80",
+        options: ["spring", "winter", "summer"],
+        sentence: "Warm spring comes after cold winter.",
+        sentenceZh: "寒冬過後，溫暖的春天就來了。",
+        subject: "Warm spring",
+        verb: "comes"
+      },
+      {
+        id: 3,
+        word: "weather",
+        syllables: "wea-ther",
+        meaning: "天氣",
+        mnemonic: "諧音「微冷」：今天天氣有點微冷。",
+        imageUrl: "https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=400&auto=format&fit=crop&q=80",
+        options: ["weather", "cloud", "season"],
+        sentence: "The nice weather makes us happy.",
+        sentenceZh: "好天氣讓我們心情愉快。",
+        subject: "The nice weather",
+        verb: "makes"
+      }
+    ];
+
+    let currentData = [...defaultData];
+    let currentQuizIndex = 0;
+
+    // Web Speech API 發音控制
+    function speak(text, rate = 0.65) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = rate;
+        window.speechSynthesis.speak(utterance);
+      } else {
+        alert("您的瀏覽器不支援語音朗讀功能");
+      }
+    }
+
+    // 渲染「看圖聽音選單字」區塊
+    function renderPicQuiz() {
+      const item = currentData[currentQuizIndex];
+      if (!item) return;
+
+      document.getElementById('picQuizProgress').innerText = `第 ${currentQuizIndex + 1} / ${currentData.length} 題`;
+      
+      const imgEl = document.getElementById('quizImage');
+      const placeholderEl = document.getElementById('quizImgPlaceholder');
+
+      if (item.imageUrl) {
+        imgEl.src = item.imageUrl;
+        imgEl.classList.remove('hidden');
+        placeholderEl.classList.add('hidden');
+      } else {
+        imgEl.classList.add('hidden');
+        placeholderEl.classList.remove('hidden');
+      }
+
+      document.getElementById('picQuizFeedback').innerText = '';
+
+      // 生成選項按鈕 (打散選項)
+      const optionsContainer = document.getElementById('picQuizOptions');
+      optionsContainer.innerHTML = '';
+      
+      const opts = item.options || [item.word, 'apple', 'book'];
+      // 隨機排序選項
+      const shuffled = [...opts].sort(() => Math.random() - 0.5);
+
+      shuffled.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = "w-full bg-slate-100 hover:bg-teal-100 border-2 border-slate-300 text-slate-800 font-bold text-2xl py-4 rounded-2xl shadow transition transform active:scale-95 text-center";
+        btn.innerText = opt;
+        btn.onclick = () => checkPicAnswer(opt, item.word, btn);
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    function playQuizAudio() {
+      const item = currentData[currentQuizIndex];
+      if (item) speak(item.word, 0.5);
+    }
+
+    function checkPicAnswer(selected, correct, buttonEl) {
+      const feedback = document.getElementById('picQuizFeedback');
+      if (selected === correct) {
+        speak("Correct! " + correct, 0.7);
+        buttonEl.className = buttonEl.className.replace('bg-slate-100', 'bg-emerald-500 text-white border-emerald-600');
+        feedback.className = "mt-4 text-center font-bold text-2xl text-emerald-600";
+        feedback.innerText = "🎉 答對了！太棒了！";
+        setTimeout(() => {
+          currentQuizIndex = (currentQuizIndex + 1) % currentData.length;
+          renderPicQuiz();
+        }, 1500);
+      } else {
+        speak("Try again", 0.7);
+        buttonEl.className = buttonEl.className.replace('bg-slate-100', 'bg-rose-200 text-rose-800 border-rose-400');
+        feedback.className = "mt-4 text-center font-bold text-xl text-rose-500";
+        feedback.innerText = "❌ 再試一次看看喔！";
+      }
+    }
+
+    // 高亮主詞與動詞
+    function highlightSentence(sentence, subject, verb) {
+      let html = sentence;
+      if (subject) {
+        html = html.replace(new RegExp(subject, 'g'), `<span class="highlight-subject">${subject}</span>`);
+      }
+      if (verb) {
+        html = html.replace(new RegExp(`\\b${verb}\\b`, 'g'), `<span class="highlight-verb">${verb}</span>`);
+      }
+      return html;
+    }
+
+    // 渲染單字卡
+    function renderCards() {
+      const container = document.getElementById('cardsContainer');
+      container.innerHTML = currentData.map((item) => `
+        <div class="bg-white rounded-3xl p-6 shadow-md border border-slate-200 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span class="text-3xl font-extrabold text-teal-700 tracking-wide">${item.word}</span>
+              <span class="text-slate-400 text-lg ml-2">(${item.syllables || item.word})</span>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="speak('${item.word}', 0.5)" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold py-2 px-4 rounded-xl text-sm transition">
+                🔊 聽發音 (0.5x)
+              </button>
+            </div>
+          </div>
+
+          <!-- 視覺鷹架例句 -->
+          <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+            <p class="text-xl leading-relaxed font-medium">
+              ${highlightSentence(item.sentence, item.subject, item.verb)}
+            </p>
+            <button onclick="speak('${item.sentence.replace(/'/g, "\\'")}', 0.65)" class="mt-2 text-teal-700 font-bold text-sm hover:underline flex items-center gap-1">
+              🔊 聽完整句子 (0.65x 慢速)
+            </button>
+          </div>
+
+          <!-- 提示摺疊 -->
+          <details class="group">
+            <summary class="cursor-pointer text-sm font-bold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1">
+              💡 點我看中文翻譯與記憶小技巧
+            </summary>
+            <div class="mt-2 p-3 bg-indigo-50/60 rounded-xl text-sm space-y-1 text-indigo-900">
+              <p><strong>中文解釋：</strong>${item.meaning}</p>
+              <p><strong>例句翻譯：</strong>${item.sentenceZh}</p>
+              <p><strong>記憶小幫手：</strong>${item.mnemonic}</p>
+            </div>
+          </details>
+        </div>
+      `).join('');
+    }
+
+    // 渲染挖空填充測驗
+    function renderFillQuiz() {
+      const container = document.getElementById('fillQuizContainer');
+      container.innerHTML = currentData.map((item, idx) => {
+        const blankSentence = item.sentence.replace(new RegExp(item.word, 'gi'), '_____');
+        return `
+          <div class="p-4 bg-slate-50 rounded-2xl border border-indigo-100 space-y-3">
+            <div class="flex items-center gap-3">
+              <span class="bg-indigo-600 text-white font-bold w-7 h-7 rounded-full flex items-center justify-center text-sm">${idx + 1}</span>
+              <button onclick="speak('${item.sentence.replace(/'/g, "\\'")}', 0.65)" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 font-bold px-3 py-1.5 rounded-xl text-sm transition">
+                🔊 聽句子
+              </button>
+            </div>
+            <p class="text-xl font-medium tracking-wide text-slate-700 font-mono">${blankSentence}</p>
+            <div class="flex items-center gap-3">
+              <input type="text" id="fillInput_${idx}" placeholder="請輸入聽到的單字" class="p-2 border border-slate-300 rounded-xl text-lg font-bold w-48 focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+              <button onclick="checkFill(${idx}, '${item.word}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition">檢查</button>
+              <span id="fillFeedback_${idx}" class="font-bold text-base"></span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function checkFill(idx, correct) {
+      const val = document.getElementById(`fillInput_${idx}`).value.trim().toLowerCase();
+      const fb = document.getElementById(`fillFeedback_${idx}`);
+      if (val === correct.toLowerCase()) {
+        fb.className = "font-bold text-base text-emerald-600";
+        fb.innerText = "✓ 正確！";
+        speak("Great job!", 0.7);
+      } else {
+        fb.className = "font-bold text-base text-rose-500";
+        fb.innerText = "✗ 再試一次";
+      }
+    }
+
+    // 載入自訂資料
+    function loadCustomData() {
+      const input = document.getElementById('jsonInput').value;
+      try {
+        const parsed = JSON.parse(input);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          currentData = parsed;
+          currentQuizIndex = 0;
+          init();
+          alert("資料載入成功！");
+        } else {
+          alert("JSON 格式需為包含單字物件的陣列。");
+        }
+      } catch (e) {
+        alert("JSON 解析失敗，請檢查格式是否正確。");
+      }
+    }
+
+    function resetDefaultData() {
+      currentData = [...defaultData];
+      currentQuizIndex = 0;
+      document.getElementById('jsonInput').value = JSON.stringify(defaultData, null, 2);
+      init();
+    }
+
+    function init() {
+      document.getElementById('jsonInput').value = JSON.stringify(currentData, null, 2);
+      renderPicQuiz();
+      renderCards();
+      renderFillQuiz();
+    }
+
+    // 初始化頁面
+    window.onload = init;
+  </script>
+</body>
+</html>
